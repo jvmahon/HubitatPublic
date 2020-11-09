@@ -29,7 +29,7 @@
 import groovy.transform.Field
 
 @Field static Map commandClassVersions = [
-        0x20: 1     //basic
+        0x20: 2     //basic
         ,0x26: 3    //switchMultiLevel
         ,0x5B: 1    //centralScene
         ,0x70: 1    //configuration get
@@ -65,8 +65,8 @@ metadata {
         fingerprint deviceId: "0209", inClusters: "0x26,0x27,0x2B,0x2C,0x85,0x72,0x86,0x91,0x77,0x73", outClusters: "0x82", mfr: "001D", prod: "0501", deviceJoinName: "Leviton ???"
         fingerprint deviceId: "0334", inClusters: "0x26,0x27,0x2B,0x2C,0x85,0x72,0x86,0x91,0x77,0x73", outClusters: "0x82", mfr: "001D", prod: "0602", deviceJoinName: "Leviton ???"
         fingerprint deviceId: "0001", inClusters: "0x5E,0x85,0x59,0x86,0x72,0x70,0x5A,0x73,0x26,0x20,0x27,0x2C,0x2B,0x7A", outClusters: "0x82", mfr: "001D", prod: "3501", deviceJoinName: "Leviton DZPD3-2BW"
-        fingerprint deviceId: "3034", inClusters: "0x5E,0x55,0x9F", outClusters: "0x5B", mfr: "000C", prod: "4447", deviceJoinName: "Homeseer HS-WD100+"
-        fingerprint deviceId: "3034", inClusters: "0x5E,0x86,0x72,0x5A,0x85,0x59,0x55,0x73,0x26,0x70,0x2C,0x2B,0x5B,0x7A,0x9F,0x6C", outClusters: "0x5B", mfr: "000C", prod: "4447", deviceJoinName: "Homeseer HS-WD100+"
+        fingerprint deviceId: "3034", inClusters: "0x5E,0x55,0x86,0x9F", outClusters: "0x5B", mfr: "000C", prod: "4447", deviceJoinName: "Homeseer HS-WD100+"
+        fingerprint deviceId: "3034", inClusters: "0x5E,0x86,0x72,0x5A,0x85,0x86,0x59,0x55,0x73,0x26,0x70,0x2C,0x2B,0x5B,0x7A,0x9F,0x6C", outClusters: "0x5B", mfr: "000C", prod: "4447", deviceJoinName: "Homeseer HS-WD100+"
     }
 
     preferences {
@@ -171,6 +171,12 @@ void zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport
 void zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd){
     if (logEnable) log.info "BasicReport value: ${cmd.value}"
     dimmerEvents(cmd.value,"digital")
+}
+
+//returns on digital v2
+void zwaveEvent(hubitat.zwave.commands.basicv2.BasicReport cmd){
+    if (logEnable) log.info "BasicReport V2 target value: ${cmd.targetValue}"
+    dimmerEvents(cmd.targetValue,"digital")
 }
 
 void zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd){
@@ -388,6 +394,10 @@ List<String>   installed(){
 	
 
     List<String> cmds = []
+	
+	// Get BasicReport Version Note: command 0x20 = 32
+    cmds.add(secure(zwave.versionV1.versionCommandClassGet(requestedCommandClass:32)))
+	
 	// Get Switch Multilevel Version Note: command 0x26 = 38
     cmds.add(secure(zwave.versionV1.versionCommandClassGet(requestedCommandClass:38)))
 	
@@ -414,7 +424,11 @@ List<String>   installed(){
 // Maybe expand to also include central scene report!
 void zwaveEvent(hubitat.zwave.commands.versionv1.VersionCommandClassReport cmd) {
     log.info "CommandClassReport- class:${ "0x${intToHexStr(cmd.requestedCommandClass)}" }, version:${cmd.commandClassVersion}"	
-    
+    if (cmd.requestedCommandClass == 32)
+    {
+        log.info "got the version report and the Basic Command Class Version is ${cmd.commandClassVersion}!"
+        state.basicVersion = cmd.commandClassVersion
+    }    
     if (cmd.requestedCommandClass == 38)
     {
         log.info "got the version report and the MultiLevel Command Class Version is ${cmd.commandClassVersion}!"
