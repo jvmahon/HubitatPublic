@@ -306,7 +306,7 @@ void sendButtonEvent(action, button, type){
 }
 
 List<String> setLevel(level){
-    return setLevel(level,3)
+    return setLevel(level,1)
 }
 
 List<String> setLevel(level,ramp){
